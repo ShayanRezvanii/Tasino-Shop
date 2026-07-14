@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none">
+  <rect width="400" height="400" fill="#F2F4F7"/>
+  <rect x="90" y="160" width="220" height="28" rx="6" fill="#0057D9"/>
+  <rect x="110" y="130" width="28" height="100" rx="6" fill="#0057D9"/>
+  <rect x="180" y="130" width="28" height="100" rx="6" fill="#003B8D"/>
+  <rect x="250" y="130" width="28" height="100" rx="6" fill="#0057D9"/>
+  <circle cx="300" cy="174" r="18" fill="#FDB913"/>
+  <text x="200" y="320" text-anchor="middle" fill="#0D1B2A" font-family="Arial" font-size="18" font-weight="700">DHDG H '*5'D'*</text>
+</svg>
