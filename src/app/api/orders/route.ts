@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin, requireUser } from "@/lib/auth";
+import { hashPassword, requireAdmin, requireUser } from "@/lib/auth";
+import { apiError } from "@/lib/api";
 import { requestZarinpalPayment } from "@/lib/payment";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const checkoutSchema = z.object({
   items: z
@@ -22,9 +26,46 @@ const checkoutSchema = z.object({
   note: z.string().optional(),
 });
 
+function appBaseUrl(req: NextRequest) {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl && !envUrl.includes("localhost")) return envUrl.replace(/\/$/, "");
+  const host =
+    req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
+  const proto = req.headers.get("x-forwarded-proto") || "https";
+  if (host) return `${proto}://${host}`;
+  return envUrl || "http://localhost:3000";
+}
+
+/** Ensure JWT user exists in this serverless DB instance (SQLite /tmp is ephemeral). */
+async function ensureDbUser(session: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}) {
+  const byId = await prisma.user.findUnique({ where: { id: session.id } });
+  if (byId) return byId;
+
+  const byEmail = await prisma.user.findUnique({
+    where: { email: session.email },
+  });
+  if (byEmail) return byEmail;
+
+  return prisma.user.create({
+    data: {
+      id: session.id,
+      email: session.email,
+      name: session.name || "کاربر",
+      role: session.role === "ADMIN" ? "ADMIN" : "CUSTOMER",
+      password: await hashPassword(`tmp-${session.id}`),
+    },
+  });
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await requireUser();
+    const dbUser = await ensureDbUser(session);
     const { searchParams } = new URL(req.url);
     const all = searchParams.get("all") === "1";
 
@@ -43,21 +84,24 @@ export async function GET(req: NextRequest) {
     }
 
     const orders = await prisma.order.findMany({
-      where: { userId: session.id },
+      where: { userId: dbUser.id },
       orderBy: { createdAt: "desc" },
       include: { items: true },
     });
     return NextResponse.json({ orders });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
-    if (msg === "UNAUTHORIZED") return NextResponse.json({ error: "ورود لازم است" }, { status: 401 });
-    return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
+    if (msg === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "ورود لازم است" }, { status: 401 });
+    }
+    return apiError(e);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await requireUser();
+    const dbUser = await ensureDbUser(session);
     const body = checkoutSchema.parse(await req.json());
 
     const productIds = body.items.map((i) => i.productId);
@@ -65,7 +109,10 @@ export async function POST(req: NextRequest) {
       where: { id: { in: productIds }, isActive: true },
     });
     if (products.length !== productIds.length) {
-      return NextResponse.json({ error: "برخی محصولات یافت نشدند" }, { status: 400 });
+      return NextResponse.json(
+        { error: "برخی محصولات یافت نشدند یا موجود نیستند" },
+        { status: 400 }
+      );
     }
 
     let subtotal = 0;
@@ -94,11 +141,12 @@ export async function POST(req: NextRequest) {
     const freeShippingMin = Number(freeMin?.value || 5000000);
     const shippingCost = subtotal >= freeShippingMin ? 0 : shippingCostDefault;
     const totalAmount = subtotal + shippingCost;
+    const base = appBaseUrl(req);
 
     const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
-        userId: session.id,
+        userId: dbUser.id,
         status: "AWAITING_PAYMENT",
         totalAmount,
         shippingCost,
@@ -113,13 +161,13 @@ export async function POST(req: NextRequest) {
       include: { items: true },
     });
 
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const payment = await requestZarinpalPayment({
       amount: totalAmount,
       description: `سفارش ${order.orderNumber}`,
       callbackUrl: `${base}/api/payment/verify?orderId=${order.id}`,
       email: session.email,
       mobile: body.shippingPhone,
+      appBaseUrl: base,
     });
 
     await prisma.order.update({
@@ -133,18 +181,22 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      return NextResponse.json({ error: "اطلاعات ارسال ناقص است" }, { status: 400 });
+      return NextResponse.json(
+        { error: "اطلاعات ارسال ناقص است", issues: e.issues },
+        { status: 400 }
+      );
     }
     const msg = e instanceof Error ? e.message : "";
-    if (msg === "UNAUTHORIZED") return NextResponse.json({ error: "ورود لازم است" }, { status: 401 });
+    if (msg === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "ورود لازم است" }, { status: 401 });
+    }
     if (msg.startsWith("STOCK:")) {
       return NextResponse.json(
         { error: `موجودی کافی نیست: ${msg.replace("STOCK:", "")}` },
         { status: 400 }
       );
     }
-    console.error(e);
-    return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
+    return apiError(e, "خطا در ثبت سفارش");
   }
 }
 
@@ -163,8 +215,12 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ order });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
-    if (msg === "UNAUTHORIZED") return NextResponse.json({ error: "ورود لازم است" }, { status: 401 });
-    if (msg === "FORBIDDEN") return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
-    return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
+    if (msg === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "ورود لازم است" }, { status: 401 });
+    }
+    if (msg === "FORBIDDEN") {
+      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 403 });
+    }
+    return apiError(e);
   }
 }

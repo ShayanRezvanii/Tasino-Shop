@@ -8,16 +8,20 @@ export async function requestZarinpalPayment(params: {
   callbackUrl: string;
   email?: string;
   mobile?: string;
+  appBaseUrl?: string;
 }): Promise<{ authority: string; paymentUrl: string }> {
   const merchant = process.env.ZARINPAL_MERCHANT_ID || "sandbox";
 
-  // Sandbox / mock gateway for local development
+  // Sandbox / mock gateway for local development & Netlify demo
   if (isSandbox() || merchant.includes("xxxx")) {
     const authority = `SAND-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const base =
+      params.appBaseUrl ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
     return {
       authority,
-      paymentUrl: `${base}/payment/mock?Authority=${authority}&Amount=${params.amount}`,
+      paymentUrl: `${base.replace(/\/$/, "")}/payment/mock?Authority=${authority}&Amount=${params.amount}`,
     };
   }
 

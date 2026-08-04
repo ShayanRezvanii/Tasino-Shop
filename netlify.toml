@@ -7,6 +7,7 @@
   DATABASE_URL = "file:./dev.db"
   JWT_SECRET = "tasino-netlify-change-me"
   ZARINPAL_SANDBOX = "true"
+  NEXT_PUBLIC_APP_URL = "https://sparkling-trifle-7e2f73.netlify.app"
 
 [functions]
   included_files = ["prisma/dev.db", "prisma/schema.prisma", "node_modules/.prisma/client/**", "node_modules/@prisma/client/**"]
