@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Countdown from "@/components/Countdown";
+import ProductImage from "@/components/ProductImage";
 import { formatPrice } from "@/lib/utils";
 
 type FlashProduct = {
@@ -66,7 +66,7 @@ export default function FlashSaleBanner() {
           className="relative flex flex-1 items-center gap-4 px-4 py-5 sm:px-8"
         >
           <div className="relative h-24 w-28 shrink-0 sm:h-28 sm:w-36">
-            <Image
+            <ProductImage
               src={banner?.image || product?.image || "/products/cooler-pump.png"}
               alt={product?.title || "فروش ویژه"}
               fill

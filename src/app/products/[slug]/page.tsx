@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ShoppingCart, Star } from "lucide-react";
 import Footer from "@/components/Footer";
 import Header, { HeaderSpacer } from "@/components/Header";
+import ProductImage from "@/components/ProductImage";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
 
@@ -53,7 +53,7 @@ export default function ProductDetailPage() {
       <main className="container-tasino py-8">
         <div className="grid gap-6 rounded-2xl bg-white p-5 shadow-card lg:grid-cols-2 lg:p-8">
           <div className="relative aspect-square overflow-hidden rounded-2xl bg-tasino-muted">
-            <Image
+            <ProductImage
               src={product.image}
               alt={product.title}
               fill

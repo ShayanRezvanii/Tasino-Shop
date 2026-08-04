@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import ProductImage from "@/components/ProductImage";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 
@@ -109,7 +110,7 @@ export default function HeroBanners() {
           </div>
 
           <div className="relative mx-auto my-4 h-40 w-full max-w-[220px]">
-            <Image
+            <ProductImage
               src={side?.image || featured?.image || "/products/water-pump.png"}
               alt={side?.title || featured?.title || "محصول"}
               fill

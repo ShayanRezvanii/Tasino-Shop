@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 import { formatPrice, orderStatusColor, orderStatusLabel } from "@/lib/utils";
 
 type OrderDetail = {
@@ -91,7 +91,7 @@ function OrderDetailInner() {
             >
               <div className="relative h-14 w-14 overflow-hidden rounded-lg bg-tasino-muted">
                 {item.image ? (
-                  <Image
+                  <ProductImage
                     src={item.image}
                     alt={item.title}
                     fill

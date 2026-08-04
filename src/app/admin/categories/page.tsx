@@ -2,6 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  CATEGORY_ICONS,
+  getCategoryIcon,
+  type CategoryIconKey,
+} from "@/lib/category-icons";
 
 type Category = {
   id: string;
@@ -17,8 +22,6 @@ type Category = {
   parent?: { name: string } | null;
 };
 
-const ICONS = ["Pump", "Faucet", "Zap", "Thermometer", "Flame", "Wrench", "Pipe", "Paint"];
-
 export default function AdminCategories() {
   const [tree, setTree] = useState<Category[]>([]);
   const [flat, setFlat] = useState<Category[]>([]);
@@ -26,7 +29,7 @@ export default function AdminCategories() {
     id: "",
     name: "",
     description: "",
-    icon: "Wrench",
+    icon: "Wrench" as CategoryIconKey,
     parentId: "",
     sortOrder: "0",
     isActive: true,
@@ -90,7 +93,7 @@ export default function AdminCategories() {
       id: c.id,
       name: c.name,
       description: c.description || "",
-      icon: c.icon,
+      icon: (c.icon as CategoryIconKey) || "Wrench",
       parentId: c.parentId || "",
       sortOrder: String(c.sortOrder),
       isActive: c.isActive,
@@ -109,7 +112,7 @@ export default function AdminCategories() {
       <div>
         <h1 className="text-2xl font-black">مدیریت دسته‌بندی‌ها</h1>
         <p className="mt-1 text-sm text-slate-500">
-          دسته‌بندی‌ها کاملاً داینامیک هستند — هر زمان می‌توانید دسته و زیردسته اضافه کنید
+          دسته‌بندی‌ها کاملاً داینامیک هستند — آیکون را از روی شکل انتخاب کنید
         </p>
       </div>
 
@@ -117,7 +120,7 @@ export default function AdminCategories() {
         onSubmit={onSubmit}
         className="grid gap-3 rounded-2xl bg-white p-5 shadow-card sm:grid-cols-2"
       >
-        <h2 className="sm:col-span-2 font-bold">
+        <h2 className="font-bold sm:col-span-2">
           {form.id ? "ویرایش دسته‌بندی" : "افزودن دسته‌بندی جدید"}
         </h2>
         <input
@@ -147,24 +150,41 @@ export default function AdminCategories() {
           placeholder="توضیح کوتاه"
           className="rounded-xl border px-4 py-3 text-sm sm:col-span-2"
         />
-        <select
-          value={form.icon}
-          onChange={(e) => setForm({ ...form, icon: e.target.value })}
-          className="rounded-xl border px-4 py-3 text-sm"
-        >
-          {ICONS.map((i) => (
-            <option key={i} value={i}>
-              آیکون: {i}
-            </option>
-          ))}
-        </select>
+
+        <div className="sm:col-span-2">
+          <p className="mb-2 text-sm font-medium text-slate-600">انتخاب آیکون</p>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {CATEGORY_ICONS.map(({ key, label, Icon }) => {
+              const active = form.icon === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  title={label}
+                  onClick={() => setForm({ ...form, icon: key })}
+                  className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-3 transition ${
+                    active
+                      ? "border-tasino-blue bg-tasino-blue text-white shadow-sm"
+                      : "border-slate-200 bg-white text-tasino-blue hover:border-tasino-blue/40 hover:bg-tasino-muted"
+                  }`}
+                >
+                  <Icon className="h-6 w-6" strokeWidth={1.75} />
+                  <span className={`text-[10px] ${active ? "text-white/90" : "text-slate-500"}`}>
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <input
           value={form.sortOrder}
           onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
           placeholder="ترتیب نمایش"
           className="rounded-xl border px-4 py-3 text-sm"
         />
-        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={form.isActive}
@@ -194,60 +214,80 @@ export default function AdminCategories() {
       </form>
 
       <div className="space-y-3">
-        {tree.map((cat) => (
-          <div key={cat.id} className="rounded-2xl bg-white p-4 shadow-card">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-bold">
-                  {cat.name}{" "}
-                  {!cat.isActive ? (
-                    <span className="text-xs text-red-500">(غیرفعال)</span>
-                  ) : null}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {cat.description} — {cat._count?.products ?? 0} محصول
-                </p>
-              </div>
-              <div className="flex gap-1">
-                <button type="button" onClick={() => edit(cat)} className="rounded-lg p-2 hover:bg-slate-100">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button type="button" onClick={() => remove(cat.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            {cat.children?.length ? (
-              <div className="mt-3 space-y-1 border-r-2 border-tasino-muted pr-3">
-                {cat.children.map((child) => (
-                  <div
-                    key={child.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-tasino-muted"
-                  >
-                    <span className="text-sm">
-                      {child.name}
-                      <span className="mr-2 text-xs text-slate-400">
-                        ({child._count?.products ?? 0})
-                      </span>
-                    </span>
-                    <div className="flex gap-1">
-                      <button type="button" onClick={() => edit(child)} className="p-1">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => remove(child.id)}
-                        className="p-1 text-red-500"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+        {tree.map((cat) => {
+          const Icon = getCategoryIcon(cat.icon);
+          return (
+            <div key={cat.id} className="rounded-2xl bg-white p-4 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-tasino-muted text-tasino-blue">
+                    <Icon className="h-5 w-5" strokeWidth={1.7} />
                   </div>
-                ))}
+                  <div>
+                    <p className="font-bold">
+                      {cat.name}{" "}
+                      {!cat.isActive ? (
+                        <span className="text-xs text-red-500">(غیرفعال)</span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {cat.description} — {cat._count?.products ?? 0} محصول
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => edit(cat)}
+                    className="rounded-lg p-2 hover:bg-slate-100"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(cat.id)}
+                    className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            ) : null}
-          </div>
-        ))}
+              {cat.children?.length ? (
+                <div className="mt-3 space-y-1 border-r-2 border-tasino-muted pr-3">
+                  {cat.children.map((child) => {
+                    const ChildIcon = getCategoryIcon(child.icon || cat.icon);
+                    return (
+                      <div
+                        key={child.id}
+                        className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-tasino-muted"
+                      >
+                        <span className="flex items-center gap-2 text-sm">
+                          <ChildIcon className="h-3.5 w-3.5 text-tasino-blue" />
+                          {child.name}
+                          <span className="text-xs text-slate-400">
+                            ({child._count?.products ?? 0})
+                          </span>
+                        </span>
+                        <div className="flex gap-1">
+                          <button type="button" onClick={() => edit(child)} className="p-1">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(child.id)}
+                            className="p-1 text-red-500"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

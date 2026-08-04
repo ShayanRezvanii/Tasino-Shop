@@ -1,28 +1,8 @@
 "use client";
 
-import {
-  Droplets,
-  Flame,
-  Gauge,
-  Paintbrush,
-  Pipette,
-  Wrench,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-const iconMap: Record<string, LucideIcon> = {
-  Pipe: Pipette,
-  Faucet: Droplets,
-  Pump: Gauge,
-  Wrench,
-  Zap,
-  Thermometer: Flame,
-  Flame,
-  Paint: Paintbrush,
-};
+import { getCategoryIcon } from "@/lib/category-icons";
 
 type Category = {
   id: string;
@@ -55,7 +35,7 @@ export default function CategoryIcons() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5">
         {categories.map((cat) => {
-          const Icon = iconMap[cat.icon] ?? Wrench;
+          const Icon = getCategoryIcon(cat.icon);
           return (
             <Link
               key={cat.id}

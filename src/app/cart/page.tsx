@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import Footer from "@/components/Footer";
 import Header, { HeaderSpacer } from "@/components/Header";
+import ProductImage from "@/components/ProductImage";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
 
@@ -37,7 +37,7 @@ export default function CartPage() {
                   className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-card"
                 >
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-tasino-muted">
-                    <Image
+                    <ProductImage
                       src={item.image}
                       alt={item.title}
                       fill

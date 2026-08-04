@@ -18,6 +18,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { getCategoryIcon } from "@/lib/category-icons";
 
 const navLinks = [
   { href: "/", label: "صفحه اصلی" },
@@ -32,7 +33,8 @@ type CatNode = {
   id: string;
   name: string;
   slug: string;
-  children?: { id: string; name: string; slug: string }[];
+  icon?: string;
+  children?: { id: string; name: string; slug: string; icon?: string }[];
 };
 
 export default function Header() {
@@ -211,13 +213,18 @@ export default function Header() {
             </button>
             {catOpen ? (
               <div className="absolute right-0 top-full z-50 mt-0 max-h-[70vh] w-72 overflow-y-auto rounded-b-xl bg-white p-3 shadow-xl sm:w-80">
-                {categories.map((cat) => (
+                {categories.map((cat) => {
+                  const Icon = getCategoryIcon(cat.icon);
+                  return (
                   <div key={cat.id} className="mb-2">
                     <Link
                       href={`/products?category=${cat.slug}`}
                       onClick={() => setCatOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-sm font-bold text-tasino-blue-deep hover:bg-tasino-muted"
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-tasino-blue-deep hover:bg-tasino-muted"
                     >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-tasino-muted text-tasino-blue">
+                        <Icon className="h-4 w-4" strokeWidth={1.8} />
+                      </span>
                       {cat.name}
                     </Link>
                     {cat.children?.length ? (
@@ -235,7 +242,8 @@ export default function Header() {
                       </div>
                     ) : null}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : null}
           </div>

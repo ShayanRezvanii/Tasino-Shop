@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { ShoppingCart, Star } from "lucide-react";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 
@@ -38,7 +38,7 @@ export default function ProductCard({ product }: { product: ProductCardData }) {
       ) : null}
 
       <Link href={`/products/${product.slug}`} className="relative mb-3 aspect-square overflow-hidden rounded-xl bg-tasino-muted">
-        <Image
+        <ProductImage
           src={product.image}
           alt={product.title}
           fill
