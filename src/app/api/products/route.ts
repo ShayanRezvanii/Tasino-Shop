@@ -1,57 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api";
 import { getSession, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category");
-  const q = searchParams.get("q");
-  const featured = searchParams.get("featured");
-  const flash = searchParams.get("flash");
-  const all = searchParams.get("all") === "1";
-  const session = await getSession();
-  const isAdmin = session?.role === "ADMIN";
+  try {
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get("category");
+    const q = searchParams.get("q");
+    const featured = searchParams.get("featured");
+    const flash = searchParams.get("flash");
+    const all = searchParams.get("all") === "1";
+    const session = await getSession();
+    const isAdmin = session?.role === "ADMIN";
 
-  const where: Record<string, unknown> = {};
-  if (!(all && isAdmin)) where.isActive = true;
-  if (featured === "1") where.isFeatured = true;
-  if (flash === "1") where.isFlashSale = true;
-  if (category) {
-    const cat = await prisma.category.findFirst({
-      where: { OR: [{ slug: category }, { id: category }] },
-      include: { children: true },
-    });
-    if (cat) {
-      const ids = [cat.id, ...cat.children.map((c) => c.id)];
-      where.categoryId = { in: ids };
+    const where: Record<string, unknown> = {};
+    if (!(all && isAdmin)) where.isActive = true;
+    if (featured === "1") where.isFeatured = true;
+    if (flash === "1") where.isFlashSale = true;
+    if (category) {
+      const cat = await prisma.category.findFirst({
+        where: { OR: [{ slug: category }, { id: category }] },
+        include: { children: true },
+      });
+      if (cat) {
+        const ids = [cat.id, ...cat.children.map((c) => c.id)];
+        where.categoryId = { in: ids };
+      }
     }
-  }
-  if (q) {
-    where.OR = [
-      { title: { contains: q } },
-      { description: { contains: q } },
-      { specs: { contains: q } },
-    ];
-  }
+    if (q) {
+      where.OR = [
+        { title: { contains: q } },
+        { description: { contains: q } },
+        { specs: { contains: q } },
+      ];
+    }
 
-  const products = await prisma.product.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: { category: true },
-    take: Number(searchParams.get("limit")) || 100,
-  });
+    const products = await prisma.product.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { category: true },
+      take: Number(searchParams.get("limit")) || 100,
+    });
 
-  return NextResponse.json({
-    products: products.map((p) => ({
-      ...p,
-      discount:
-        p.oldPrice && p.oldPrice > p.price
-          ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
-          : undefined,
-      categoryName: p.category.name,
-    })),
-  });
+    return NextResponse.json({
+      products: products.map((p) => ({
+        ...p,
+        discount:
+          p.oldPrice && p.oldPrice > p.price
+            ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
+            : undefined,
+        categoryName: p.category.name,
+      })),
+    });
+  } catch (e) {
+    return apiError(e);
+  }
 }
 
 export async function POST(req: NextRequest) {

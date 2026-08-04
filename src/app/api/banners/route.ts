@@ -1,22 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api";
 import { getSession, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const type = searchParams.get("type");
-  const all = searchParams.get("all") === "1";
-  const session = await getSession();
-  const isAdmin = session?.role === "ADMIN";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-  const banners = await prisma.banner.findMany({
-    where: {
-      ...(type ? { type } : {}),
-      ...(all && isAdmin ? {} : { isActive: true }),
-    },
-    orderBy: { sortOrder: "asc" },
-  });
-  return NextResponse.json({ banners });
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type");
+    const all = searchParams.get("all") === "1";
+    const session = await getSession();
+    const isAdmin = session?.role === "ADMIN";
+
+    const banners = await prisma.banner.findMany({
+      where: {
+        ...(type ? { type } : {}),
+        ...(all && isAdmin ? {} : { isActive: true }),
+      },
+      orderBy: { sortOrder: "asc" },
+    });
+    return NextResponse.json({ banners });
+  } catch (e) {
+    return apiError(e);
+  }
 }
 
 export async function POST(req: NextRequest) {

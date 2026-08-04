@@ -1,40 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api";
 import { getSession, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const tree = searchParams.get("tree") === "1";
-  const all = searchParams.get("all") === "1";
-  const session = await getSession();
-  const isAdmin = session?.role === "ADMIN";
+  try {
+    const { searchParams } = new URL(req.url);
+    const tree = searchParams.get("tree") === "1";
+    const all = searchParams.get("all") === "1";
+    const session = await getSession();
+    const isAdmin = session?.role === "ADMIN";
 
-  if (tree) {
-    const parents = await prisma.category.findMany({
-      where: {
-        parentId: null,
-        ...(all && isAdmin ? {} : { isActive: true }),
-      },
-      orderBy: { sortOrder: "asc" },
-      include: {
-        children: {
-          where: all && isAdmin ? {} : { isActive: true },
-          orderBy: { sortOrder: "asc" },
-          include: { _count: { select: { products: true } } },
+    if (tree) {
+      const parents = await prisma.category.findMany({
+        where: {
+          parentId: null,
+          ...(all && isAdmin ? {} : { isActive: true }),
         },
-        _count: { select: { products: true } },
-      },
-    });
-    return NextResponse.json({ categories: parents });
-  }
+        orderBy: { sortOrder: "asc" },
+        include: {
+          children: {
+            where: all && isAdmin ? {} : { isActive: true },
+            orderBy: { sortOrder: "asc" },
+            include: { _count: { select: { products: true } } },
+          },
+          _count: { select: { products: true } },
+        },
+      });
+      return NextResponse.json({ categories: parents });
+    }
 
-  const categories = await prisma.category.findMany({
-    where: all && isAdmin ? {} : { isActive: true },
-    orderBy: [{ parentId: "asc" }, { sortOrder: "asc" }],
-    include: { _count: { select: { products: true } }, parent: true },
-  });
-  return NextResponse.json({ categories });
+    const categories = await prisma.category.findMany({
+      where: all && isAdmin ? {} : { isActive: true },
+      orderBy: [{ parentId: "asc" }, { sortOrder: "asc" }],
+      include: { _count: { select: { products: true } }, parent: true },
+    });
+    return NextResponse.json({ categories });
+  } catch (e) {
+    return apiError(e);
+  }
 }
 
 export async function POST(req: NextRequest) {
