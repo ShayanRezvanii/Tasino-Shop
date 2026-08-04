@@ -1,17 +1,33 @@
+"use client";
+
 import Image from "next/image";
 import { ShoppingCart, Star } from "lucide-react";
-import { formatPrice, type Product } from "@/data/products";
+import Link from "next/link";
+import { formatPrice } from "@/lib/utils";
+import { useCart } from "@/lib/cart-context";
 
-type ProductCardProps = {
-  product: Product;
+export type ProductCardData = {
+  id: string;
+  title: string;
+  slug: string;
+  image: string;
+  price: number;
+  oldPrice?: number | null;
+  rating: number;
+  categoryName?: string;
+  discount?: number;
+  badge?: string | null;
+  specs?: string | null;
 };
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product }: { product: ProductCardData }) {
+  const { addItem } = useCart();
+
   return (
     <article className="group relative flex flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
       {product.discount ? (
         <div className="absolute left-3 top-3 z-10 rounded-lg bg-tasino-yellow px-2 py-0.5 text-xs font-black text-tasino-blue-deep">
-          ٪{product.discount}
+          ٪{product.discount.toLocaleString("fa-IR")}
         </div>
       ) : null}
 
@@ -21,7 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       ) : null}
 
-      <div className="relative mb-3 aspect-square overflow-hidden rounded-xl bg-tasino-muted">
+      <Link href={`/products/${product.slug}`} className="relative mb-3 aspect-square overflow-hidden rounded-xl bg-tasino-muted">
         <Image
           src={product.image}
           alt={product.title}
@@ -29,15 +45,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 640px) 50vw, 240px"
         />
-      </div>
+      </Link>
 
       <p className="mb-1 text-[11px] font-medium text-tasino-blue">
-        {product.category}
+        {product.categoryName}
       </p>
 
-      <h3 className="mb-2 line-clamp-2 min-h-[2.75rem] text-sm font-semibold leading-relaxed text-tasino-text">
-        {product.title}
-      </h3>
+      <Link href={`/products/${product.slug}`}>
+        <h3 className="mb-2 line-clamp-2 min-h-[2.75rem] text-sm font-semibold leading-relaxed text-tasino-text">
+          {product.title}
+        </h3>
+      </Link>
 
       {product.specs ? (
         <p className="mb-2 line-clamp-1 text-xs text-slate-400">{product.specs}</p>
@@ -65,6 +83,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         <button
           type="button"
           aria-label="افزودن به سبد"
+          onClick={() =>
+            addItem({
+              productId: product.id,
+              title: product.title,
+              price: product.price,
+              image: product.image,
+            })
+          }
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-tasino-blue text-white transition hover:bg-tasino-blue-dark"
         >
           <ShoppingCart className="h-4 w-4" />
